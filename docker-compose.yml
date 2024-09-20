@@ -1,0 +1,41 @@
+version: '3'
+services:
+  express:
+    build:
+      context: ./express
+    networks:
+      - nitiphum-network 
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/mydatabase
+    depends_on:
+      - mongodb  # Ensures MongoDB starts before Express
+
+  nginx:
+    image: nginx
+    networks:
+      - nitiphum-network 
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - express  # Ensures Express starts before Nginx
+    command: /bin/sh -c "sleep 5 && nginx -g 'daemon off;'"  # Wait for express to fully initialize
+
+  mongodb:
+    image: mongo
+    networks:
+      - nitiphum-network 
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+
+networks:
+  nitiphum-network: 
+    driver: bridge
+
+volumes:
+  mongodb-data:

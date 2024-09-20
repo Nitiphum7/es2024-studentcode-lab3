@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Directory</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { text-align: center; }
+        .user-list { margin-top: 20px; }
+        .user { margin-bottom: 10px; }
+        form { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Student Directory</h1>
+        
+        <!-- Add Student Form -->
+        <form id="addUserForm">
+            <h2>Add Student</h2>
+            <input type="text" id="studentCode" placeholder="Student Code" required>
+            <input type="text" id="firstName" placeholder="First Name" required>
+            <input type="text" id="lastName" placeholder="Last Name" required>
+            <input type="tel" id="telNumber" placeholder="Telephone Number" required>
+            <button type="submit">Add Student</button>
+        </form>
+        
+        <!-- Edit Student Form -->
+        <form id="editUserForm" style="display: none;">
+            <h2>Edit Student</h2>
+            <input type="hidden" id="editId">
+            <input type="text" id="editStudentCode" placeholder="Student Code" required>
+            <input type="text" id="editFirstName" placeholder="First Name" required>
+            <input type="text" id="editLastName" placeholder="Last Name" required>
+            <input type="tel" id="editTelNumber" placeholder="Telephone Number" required>
+            <button type="submit">Update Student</button>
+        </form>
+        
+        <!-- Student List -->
+        <div class="user-list" id="userList"></div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUsers();
+        });
+
+        // Load users from API
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/students');
+                const students = await response.json();
+                const userList = document.getElementById('userList');
+                userList.innerHTML = '';
+                students.forEach(student => {
+                    const userDiv = document.createElement('div');
+                    userDiv.className = 'user';
+                    userDiv.innerHTML = `
+                        <strong>${student.firstName} ${student.lastName}</strong> (${student.studentCode}) - ${student.telNumber}
+                        <button onclick="editUser('${student._id}', '${student.studentCode}', '${student.firstName}', '${student.lastName}', '${student.telNumber}')">Edit</button>
+                        <button onclick="deleteUser('${student._id}')">Delete</button>
+                    `;
+                    userList.appendChild(userDiv);
+                });
+            } catch (error) {
+                console.error('Error loading students:', error);
+            }
+        }
+
+        // Add a new student
+        document.getElementById('addUserForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const studentCode = document.getElementById('studentCode').value;
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const telNumber = document.getElementById('telNumber').value;
+            
+            try {
+                const response = await fetch('/api/students', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ studentCode, firstName, lastName, telNumber })
+                });
+                if (response.ok) {
+                    loadUsers();
+                    document.getElementById('addUserForm').reset();
+                } else {
+                    console.error('Error adding student:', await response.text());
+                }
+            } catch (error) {
+                console.error('Error adding student:', error);
+            }
+        });
+
+        // Edit a student
+        window.editUser = (id, studentCode, firstName, lastName, telNumber) => {
+            document.getElementById('editId').value = id;
+            document.getElementById('editStudentCode').value = studentCode;
+            document.getElementById('editFirstName').value = firstName;
+            document.getElementById('editLastName').value = lastName;
+            document.getElementById('editTelNumber').value = telNumber;
+            document.getElementById('editUserForm').style.display = 'block';
+        };
+
+        document.getElementById('editUserForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const id = document.getElementById('editId').value;
+            const studentCode = document.getElementById('editStudentCode').value;
+            const firstName = document.getElementById('editFirstName').value;
+            const lastName = document.getElementById('editLastName').value;
+            const telNumber = document.getElementById('editTelNumber').value;
+            
+            try {
+                const response = await fetch(`/api/students/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ studentCode, firstName, lastName, telNumber })
+                });
+                if (response.ok) {
+                    loadUsers();
+                    document.getElementById('editUserForm').reset();
+                    document.getElementById('editUserForm').style.display = 'none';
+                } else {
+                    console.error('Error updating student:', await response.text());
+                }
+            } catch (error) {
+                console.error('Error updating student:', error);
+            }
+        });
+
+        // Delete a student
+        window.deleteUser = async (id) => {
+            try {
+                const response = await fetch(`/api/students/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    loadUsers();
+                } else {
+                    console.error('Error deleting student:', await response.text());
+                }
+            } catch (error) {
+                console.error('Error deleting student:', error);
+            }
+        };
+    </script>
+</body>
+</html>
